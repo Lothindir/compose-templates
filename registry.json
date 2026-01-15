@@ -1,0 +1,24 @@
+{
+  "$schema": "https://registry.getarcane.app/schema.json",
+  "name": "Custom templates",
+  "description": "Custom templates for Arcane",
+  "author": "Lothindir",
+  "url": "https://github.com/Lothindir/compose-templates",
+  "version": "0.0.1",
+  "templates": [
+    {
+      "id": "traefik",
+      "name": "Traefik",
+      "description": "Traefik reverse-proxy basic template",
+      "version": "1.0.0",
+      "author": "Lothindir",
+      "compose_url": "https://raw.githubusercontent.com/Lothindir/compose-templates/refs/heads/main/traefik/compose.yaml",
+      "env_url": "https://raw.githubusercontent.com/Lothindir/compose-templates/refs/heads/main/traefik/.env.example",
+      "documentation_url": "https://raw.githubusercontent.com/Lothindir/compose-templates/refs/heads/main/traefik/README.md",
+      "tags": [
+        "Reverse-Proxy",
+        "Network"
+      ]
+    }
+  ]
+}
