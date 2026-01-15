@@ -1,0 +1,104 @@
+services:
+  traefik:
+    image: traefik:v3
+    container_name: traefik
+    restart: unless-stopped
+
+    command:
+      # ---- Global ----
+      - "--global.checknewversion=false"
+      - "--global.sendanonymoususage=false"
+
+      # ---- Web EntryPoints ----
+      - "--entrypoints.websecure.address=:443"
+
+      # ---- TCP EntryPoints ----
+
+      # ---- UDP EntryPoints ----
+
+      # ---- Providers ----
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=frontend"
+
+      # ---- API / Dashboard ----
+      - "--api.dashboard=true"
+      - "--api.insecure=false"
+
+      # ---- Logging ----
+      - "--log.level=INFO"
+      - "--log.format=json"
+      - "--accesslog=true"
+      - "--accesslog.format=json"
+      - "--accesslog.fields.defaultmode=keep"
+      - "--accesslog.fields.headers.defaultmode=keep"
+      - "--accesslog.filters.statuscodes=400-599"
+
+      # ---- Metrics ----
+      - "--metrics.prometheus=true"
+      - "--metrics.prometheus.addentrypointslabels=true"
+      - "--metrics.prometheus.addserviceslabels=true"
+
+      # ---- TLS ----
+      - "--entrypoints.websecure.http.tls=true"
+      - "--entrypoints.websecure.http.tls.options=default"
+
+      # ---- Certs ----
+      - --certificatesresolvers.letsencrypt.acme.email=lothindir@protonmail.ch
+      - --certificatesresolvers.letsencrypt.acme.storage=/etc/traefik/acme/acme.json
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge.provider=cloudflare
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge.propagation.delaybeforechecks=300
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge.resolvers=8.8.8.8:53
+      - --certificatesresolvers.letsencrypt.acme.dnschallenge=true
+
+    ports:
+      - "443:443"
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./certs:/certs:ro
+      - ./acme:/etc/traefik/acme
+      - ./logs:/logs
+
+    labels:
+      # =========================
+      # 🔒 GLOBAL MIDDLEWARES
+      # =========================
+
+      # IP allowlist (management VLAN + admin host)
+      - "traefik.http.middlewares.ipallowlist.ipAllowList.sourcerange=192.168.0.0/23,192.168.40.0/24,192.168.20.0/24"
+
+      # Security headers
+      - "traefik.http.middlewares.secure-headers.headers.framedeny=true"
+      - "traefik.http.middlewares.secure-headers.headers.contenttypenosniff=true"
+      - "traefik.http.middlewares.secure-headers.headers.browserxssfilter=true"
+      - "traefik.http.middlewares.secure-headers.headers.stsseconds=15552000"
+      - "traefik.http.middlewares.secure-headers.headers.stsincludesubdomains=true"
+      - "traefik.http.middlewares.secure-headers.headers.stspreload=true"
+
+      # Authentication (replace hash!)
+      #- "traefik.http.middlewares.soc-basicauth.basicauth.users=admin:$apr1$REPLACE_WITH_HASH"
+
+      # TLS options
+      - "traefik.tls.options.default.minversion=VersionTLS12"
+      - "traefik.tls.options.default.ciphersuites=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+
+      # =========================
+      # 📊 TRAEFIK DASHBOARD
+      # =========================
+      - "traefik.enable=true"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.${HOST_DOMAIN}`)"
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.middlewares=ipallowlist,secure-headers"
+      - "traefik.http.routers.traefik.tls=true"
+      - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
+
+    environment:
+
+    networks:
+      - frontend
+
+networks:
+  frontend:
+    external: true
